@@ -60,6 +60,14 @@ public class FactoryModel
         return true;
     }
 
+    public void RestoreBalance(float balance)
+    {
+        Balance = balance;
+        _lastNotifiedBalance = balance;
+        OnBalanceChanged?.Invoke(Balance);
+        OnIncomeChanged?.Invoke(TotalIncomePerSecond);
+    }
+
     private void EmitAfterMutation(MachineModel machine)
     {
         _lastNotifiedBalance = Balance;

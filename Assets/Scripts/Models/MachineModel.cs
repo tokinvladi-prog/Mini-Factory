@@ -38,4 +38,10 @@ public class MachineModel
         Level++;
         return true;
     }
+
+    public void Restore(int level, bool isUnlocked)
+    {
+        IsUnlocked = isUnlocked;
+        Level = isUnlocked ? Mathf.Max(1, level) : 0;
+    }
 }
