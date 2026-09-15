@@ -12,7 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f3579235e08f91a4d86f9ed4e122d92a, type: 3}
   m_Name: FactoryConfig
   m_EditorClassIdentifier: Assembly-CSharp::FactoryConfig
-  machines: []
-  boostMultiplier: 0
-  boostDuration: 0
-  maxOfflineSeconds: 0
+  machines:
+  - {fileID: 11400000, guid: 4bb689ed40bafa34d9d7d9caccc0d100, type: 2}
+  - {fileID: 11400000, guid: 3b9c26a4015792c4aaca1e7c6837f904, type: 2}
+  - {fileID: 11400000, guid: b2a30143eee1ecc49820997809b1e548, type: 2}
+  boostMultiplier: 2
+  boostDuration: 60
+  maxOfflineSeconds: 7200

@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c110f131d70567f4892179c7d987ead2, type: 3}
   m_Name: MachineConfig - Robotic arm
   m_EditorClassIdentifier: Assembly-CSharp::MachineConfig
-  id: 
-  baseIncome: 0
-  baseUnlockCost: 0
-  baseUpgradeCost: 0
-  costMultiplier: 0
+  id: machine_roboticarm
+  baseIncome: 120
+  baseUnlockCost: 2000
+  baseUpgradeCost: 2500
+  costMultiplier: 1.15
