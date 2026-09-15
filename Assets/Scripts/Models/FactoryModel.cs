@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.Events;
 
 public class FactoryModel
 {
@@ -10,6 +9,7 @@ public class FactoryModel
 
     private readonly List<MachineModel> _machines = new();
     private float _lastNotifiedBalance;
+    private float _incomeMultiplier = 1f;
 
     public FactoryConfig Config { get; }
     public float Balance { get; private set; }
@@ -29,13 +29,43 @@ public class FactoryModel
             _machines.Add(new MachineModel(m));
     }
 
-    public float TotalIncomePerSecond => _machines.Sum(m => m.GetIncome());
+    public float IncomeMultiplier
+    {
+        get => _incomeMultiplier;
+        set
+        {
+            if (Mathf.Abs(_incomeMultiplier - value) < 0.0001f) return;
+            _incomeMultiplier = value;
+            OnIncomeChanged?.Invoke(TotalIncomePerSecond);
+        }
+    }
+
+    public float BaseIncomePerSecond
+    {
+        get
+        {
+            float sum = 0f;
+            for (int i = 0; i < _machines.Count; i++)
+                sum += _machines[i].GetIncome();
+            return sum;
+        }
+    }
+
+    public float TotalIncomePerSecond => BaseIncomePerSecond * _incomeMultiplier;
 
     public void Tick(float deltaTime)
     {
         if (deltaTime <= 0d) return;
         Balance += TotalIncomePerSecond * deltaTime;
         NotifyBalanceIfSignificant();
+    }
+
+    public void ApplyOfflineReward(float amount)
+    {
+        if (amount <= 0f) return;
+        Balance += amount;
+        _lastNotifiedBalance = Balance;
+        OnBalanceChanged?.Invoke(Balance);
     }
 
     public bool TryUnlock(MachineModel machine)
