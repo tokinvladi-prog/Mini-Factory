@@ -95,6 +95,12 @@ public class FactoryManager : MonoBehaviour
         _dirty = false;
     }
 
+    public void AddCurrency(float amount)
+    {
+        Model.AddBalance(amount);
+        _dirty = true;
+    }
+
     [ContextMenu("Delete Save (debug)")]
     private void DeleteSave()
     {

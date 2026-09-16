@@ -51,6 +51,14 @@ public class FactoryModel
         }
     }
 
+    public void AddBalance(float amount)
+{
+    if (amount <= 0f) return;
+    Balance += amount;
+    _lastNotifiedBalance = Balance;
+    OnBalanceChanged?.Invoke(Balance);
+}
+
     public float TotalIncomePerSecond => BaseIncomePerSecond * _incomeMultiplier;
 
     public void Tick(float deltaTime)
