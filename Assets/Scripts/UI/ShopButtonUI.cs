@@ -52,7 +52,7 @@ public class ShopButtonUI : MonoBehaviour
         Debug.LogWarning($"[Shop] {error}");
     }
 
-    private void HandleCompleted(IapPurchaseInfo info)
+    private void HandleCompleted(IapPurchaseInfo info, float reward)
     {
         if (info.ProductId != productId) return;
         statusText.text = "Thanks!";

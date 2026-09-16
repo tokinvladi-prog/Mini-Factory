@@ -14,11 +14,16 @@ public class IapCoordinator : MonoBehaviour
 
     public bool IsReady => _iap != null && _iap.IsReady;
     public string LastError => _iap != null ? _iap.LastError : "IAP service missing";
-    public bool TryGetProduct(string id, out IapProductInfo info) => _products.TryGetValue(id, out info);
+    public int ProductCount => _products.Count;
+
+    public bool TryGetProduct(string id, out IapProductInfo info)
+        => _products.TryGetValue(id, out info);
 
     public event Action OnReady;
     public event Action<string> OnFailed;
-    public event Action<IapPurchaseInfo> OnPurchaseCompleted;
+    public event Action<IapProductInfo> OnProductFetched;
+    public event Action<IapPurchaseInfo, float> OnPurchaseCompleted;
+    public event Action<IapPurchaseFailure> OnPurchaseFailed;
 
     private void Awake()
     {
@@ -66,11 +71,15 @@ public class IapCoordinator : MonoBehaviour
 
     public void Restore() => _iap?.RestorePurchases();
 
+
     private void HandleInitialized() => OnReady?.Invoke();
     private void HandleInitFailed(string error) => OnFailed?.Invoke(error);
 
     private void HandleProductFetched(IapProductInfo info)
-        => _products[info.ProductId] = info;
+    {
+        _products[info.ProductId] = info;
+        OnProductFetched?.Invoke(info);
+    }
 
     private void HandlePurchaseSucceeded(IapPurchaseInfo info)
     {
@@ -86,9 +95,12 @@ public class IapCoordinator : MonoBehaviour
         _iap.ConfirmPurchase(info.ProductId);
 
         Debug.Log($"[IapCoordinator] Granted {def.currencyReward} for {info.ProductId}");
-        OnPurchaseCompleted?.Invoke(info);
+        OnPurchaseCompleted?.Invoke(info, def.currencyReward);
     }
 
     private void HandlePurchaseFailed(IapPurchaseFailure failure)
-        => Debug.LogWarning($"[IapCoordinator] Purchase failed: {failure.ProductId} — {failure.Reason}: {failure.Message}");
+    {
+        Debug.LogWarning($"[IapCoordinator] Purchase failed: {failure.ProductId} — {failure.Reason}: {failure.Message}");
+        OnPurchaseFailed?.Invoke(failure);
+    }
 }

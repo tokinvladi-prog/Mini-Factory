@@ -50,8 +50,8 @@ public class MachineCardUI : MonoBehaviour
 
     private void HandleClick()
     {
-        if (!_model.IsUnlocked) _factory.Model.TryUnlock(_model);
-        else _factory.Model.TryUpgrade(_model);
+        if (!_model.IsUnlocked) _factory.TryUnlock(_model);
+        else _factory.TryUpgrade(_model);
     }
 
     private void HandleMachineChanged(MachineModel changed)

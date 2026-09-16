@@ -15,13 +15,22 @@ public class FactoryManager : MonoBehaviour
     private float _autoSaveTimer;
     private bool _dirty;
     private float _pendingOfflineReward;
+    private bool _isFirstSession;
+    private bool _hasPendingOfflineResult;
+    private OfflineResult _pendingOfflineResult;
 
-    public bool HasPendingOfflineReward => _pendingOfflineReward > 0d;
+    public bool HasPendingOfflineReward => _pendingOfflineReward > 0f;
     public float PendingOfflineReward => _pendingOfflineReward;
 
     public FactoryModel Model { get; private set; }
     public BoostController Boost => _boost;
 
+    public event Action<bool> OnGameStarted;
+    public event Action<MachineModel, double> OnMachineUnlocked;
+    public event Action<MachineModel, double> OnMachineUpgraded;
+    public event Action<float, float> OnBoostStarted;
+    public event Action OnBoostFinished;
+    public event Action<OfflineResult> OnOfflineIncomeApplied;
     public event Action<float> OnBalanceChanged;
     public event Action<float> OnIncomeChanged;
     public event Action<MachineModel> OnMachineChanged;
@@ -29,6 +38,7 @@ public class FactoryManager : MonoBehaviour
 
     private void Awake()
     {
+        _isFirstSession = !_saveService.HasSave();
         Model = new FactoryModel(config, startingBalance);
         LoadAndApplyOffline();
 
@@ -61,12 +71,42 @@ public class FactoryManager : MonoBehaviour
         }
     }
 
+    private void Start()
+    {
+        OnGameStarted?.Invoke(_isFirstSession);
+
+        if (_hasPendingOfflineResult)
+        {
+            var r = _pendingOfflineResult;
+            OnOfflineIncomeApplied?.Invoke(r);
+
+            if (r.Earned > 0f && r.TotalElapsedSeconds >= minOfflineSecondsForPopup)
+                OnOfflineRewardReady?.Invoke(r.Earned);
+        }
+    }
+
     private void OnApplicationPause(bool pause)
     {
         if (pause) SaveNow();
     }
 
     private void OnApplicationQuit() => SaveNow();
+
+    public bool TryUnlock(MachineModel machine)
+    {
+        double cost = machine.Config.BaseUnlockCost;
+        if (!Model.TryUnlock(machine)) return false;
+        OnMachineUnlocked?.Invoke(machine, cost);
+        return true;
+    }
+
+    public bool TryUpgrade(MachineModel machine)
+    {
+        double cost = machine.GetUpgradeCost();
+        if (!Model.TryUpgrade(machine)) return false;
+        OnMachineUpgraded?.Invoke(machine, cost);
+        return true;
+    }
 
     public bool TryActivateBoost()
     {
@@ -75,6 +115,7 @@ public class FactoryManager : MonoBehaviour
         _boost.Start(config.BoostDuration);
         Model.IncomeMultiplier = config.BoostMultiplier;
         _dirty = true;
+        OnBoostStarted?.Invoke(config.BoostDuration, config.BoostMultiplier);
         return true;
     }
 
@@ -113,42 +154,39 @@ public class FactoryManager : MonoBehaviour
         if (!_boost.IsActive) return;
 
         _boost.Tick(dt);
-        if (!_boost.IsActive)
-            Model.IncomeMultiplier = 1f;
         _dirty = true;
+
+        if (!_boost.IsActive)
+        {
+            Model.IncomeMultiplier = 1f;
+            OnBoostFinished?.Invoke();
+        }
     }
 
     private void LoadAndApplyOffline()
     {
         if (!_saveService.HasSave()) return;
-
         var data = _saveService.Load();
+        if (data == null) return;
+
         SaveMapper.Apply(data, Model);
         _boost.Restore(data.boostTimeRemaining);
 
         float elapsed = ComputeElapsedSeconds(data.lastSaveTime);
         var result = OfflineProgressService.Compute(
-            elapsed,
-            data.boostTimeRemaining,
-            config.BoostMultiplier,
-            Model.BaseIncomePerSecond,
+            elapsed, data.boostTimeRemaining,
+            config.BoostMultiplier, Model.BaseIncomePerSecond,
             config.MaxOfflineSeconds);
 
         _boost.Restore(result.BoostTimeRemainingAfter);
 
-        if (result.HasReward && elapsed >= minOfflineSecondsForPopup)
+        if (result.HasReward)
         {
-            _pendingOfflineReward = result.Earned;
-            OnOfflineRewardReady?.Invoke(result.Earned);
+            _pendingOfflineResult = result;
+            _hasPendingOfflineResult = true;
         }
 
         SaveNow();
-
-        Debug.Log($"[Offline] elapsed={elapsed:F1}s " +
-                  $"boost={result.BoostEffectiveTime:F1}s " +
-                  $"regular={result.RegularEffectiveTime:F1}s " +
-                  $"earned={result.Earned:F2} " +
-                  $"boostLeft={result.BoostTimeRemainingAfter:F1}s");
     }
 
     private static float ComputeElapsedSeconds(long lastSaveUnixMs)
