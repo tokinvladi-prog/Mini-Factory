@@ -20,12 +20,12 @@ public class FactoryManager : MonoBehaviour
     public float PendingOfflineReward => _pendingOfflineReward;
 
     public FactoryModel Model { get; private set; }
-    public float BoostTimeRemaining { get; set; }
+    public BoostController Boost => _boost;
 
     public event Action<float> OnBalanceChanged;
     public event Action<float> OnIncomeChanged;
     public event Action<MachineModel> OnMachineChanged;
-    public event Action<double> OnOfflineRewardReady;
+    public event Action<float> OnOfflineRewardReady;
 
     private void Awake()
     {
@@ -90,7 +90,7 @@ public class FactoryManager : MonoBehaviour
     {
         if (Model == null) return;
 
-        var dto = SaveMapper.ToDto(Model, BoostTimeRemaining);
+        var dto = SaveMapper.ToDto(Model, _boost.TimeRemaining);
         _saveService.Save(dto);
         _dirty = false;
     }
@@ -107,7 +107,7 @@ public class FactoryManager : MonoBehaviour
         if (!_boost.IsActive) return;
 
         _boost.Tick(dt);
-        if (_boost.IsActive)
+        if (!_boost.IsActive)
             Model.IncomeMultiplier = 1f;
         _dirty = true;
     }
